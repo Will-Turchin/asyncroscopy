@@ -1,25 +1,48 @@
-# Gatan_server.py
+# Gatan_server_twin.py
 
 """
-from the outside, this server should be indistinguishable from a real Gatan server.
+mirrors the real thing.
 """
 
-from twisted.internet import reactor
+from twisted.internet import reactor, protocol
 import numpy as np
 import time
-from base_protocol import CommandProtocol, CommandFactory
+import sys
+
+from asyncroscopy.servers.protocols.execution_protocol import ExecutionProtocol
 
 
-class GatanProtocol(CommandProtocol):
+# FACTORY — holds shared state (persistent across all connections)
+class GatanFactory(protocol.Factory):
+    def __init__(self):
+        # persistent states for all protocol instances
+        self.detectors = {}
+        self.status = "Offline"
+
+    def buildProtocol(self, addr):
+        """Create a new protocol instance and attach the factory (shared state)."""
+        proto = GatanProtocol()
+        proto.factory = self
+        return proto
+
+
+# PROTOCOL — handles per-connection command execution
+class GatanProtocol(ExecutionProtocol):
     def __init__(self):
         super().__init__()
-        # register all supported commands
-        self.register_command("Gatan_get_spectrum", self.get_spectrum)
-        self.register_command("Gatan_status", self.status)
+        # register supported commands
+        self.register_command("connect_Gatan", self.connect_Gatan)
+        self.register_command("get_spectrum", self.get_spectrum)
+        self.register_command("get_status", self.get_status)
+
+    def connect_Gatan(self, host, port):
+        """Connect to the Gatan camera via AutoScript"""
+        self.factory.status = "Ready"
+        msg = "[Gatan] Connected to Gatan camera."
+        return msg.encode()
 
     def get_spectrum(self, args):
         size = int(args[0])
-        print(f"[GATAN] Generating spectrum of size {size}")
         time.sleep(3)
 
         x = np.arange(size)
@@ -30,15 +53,14 @@ class GatanProtocol(CommandProtocol):
 
         return spectrum.tobytes()
 
-    def status(self, args):
-        return b"Gatan server online"
+    def get_status(self, args=None):
+        """Return the status"""
+        msg = f"Gatan server is {self.factory.status}"
+        return msg.encode()
 
 
 if __name__ == "__main__":
-    factory = CommandFactory()
-    factory.protocol = GatanProtocol
-
     port = 9002
-    print(f"Gatan server running on port {port}...")
-    reactor.listenTCP(port, factory)
+    print(f"[Gatan] Server running on port {port}...")
+    reactor.listenTCP(port, GatanFactory())
     reactor.run()

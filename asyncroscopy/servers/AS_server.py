@@ -9,18 +9,19 @@ import numpy as np
 import time
 import sys
 
-from base_protocol import CommandProtocol
+from asyncroscopy.servers.protocols.execution_protocol import ExecutionProtocol
+# sys.path.insert(0, "C:\\AE_future\\autoscript_1_14\\")
 sys.path.insert(0, "/Users/austin/Desktop/Projects/autoscript_tem_microscope_client")
 import autoscript_tem_microscope_client as auto_script
 
 
 # FACTORY — holds shared state (persistent across all connections)
-# ================================================================
 class ASFactory(protocol.Factory):
     def __init__(self):
-        # persistent state for all protocol instances
+        # persistent states for all protocol instances
         self.microscope = None
         self.detectors = {}
+        self.status = "Offline"
 
     def buildProtocol(self, addr):
         """Create a new protocol instance and attach the factory (shared state)."""
@@ -30,23 +31,25 @@ class ASFactory(protocol.Factory):
 
 
 # PROTOCOL — handles per-connection command execution
-# ================================================================
-class ASProtocol(CommandProtocol):
+class ASProtocol(ExecutionProtocol):
     def __init__(self):
         super().__init__()
         # Register supported commands
-        self.register_command("AS_connect_AS", self.connect_AS)
-        self.register_command("AS_get_image", self.get_image)
-        self.register_command("AS_get_status", self.get_status)
-        self.register_command("AS_get_stage", self.get_stage)
+        self.register_command("connect_AS", self.connect_AS)
+        self.register_command("get_scanned_image", self.get_scanned_image)
+        self.register_command("get_stage", self.get_stage)
+        self.register_command("get_status", self.get_status)
+
 
     # ---------------------------------------------------------------
-    def connect_AS(self, args):
-        """Connect to the microscope via AutoScript."""
+    def connect_AS(self, host, port):
+        """Connect to the microscope via AutoScript"""
+        print(f"[AS] Connecting to microscope at {host}:{port}...")
         try:
+            self.factory.microscope = 'Debugging'
             # self.factory.microscope = auto_script.TemMicroscopeClient()
-            # self.factory.microscope.connect(host=str(args[0]), port=int(args[1]))
-            self.factory.microscope = "Connected!!"
+            # self.factory.microscope.connect(host=str(host), port=int(port))
+            self.factory.status = "Ready"
             msg = "[AS] Connected to microscope."
         except Exception as e:
             msg = f"[AS] Failed to connect to microscope: {e}"
@@ -54,33 +57,35 @@ class ASProtocol(CommandProtocol):
         return msg.encode()
 
     # ---------------------------------------------------------------
-    def get_image(self, args):
-        """Simulate image acquisition (placeholder for actual TEM API call)."""
-        size = int(args[0])
-        print(f"[AS] Generating image of size {size}x{size}")
-        time.sleep(1)
-        img = (np.random.rand(size, size) * 255).astype(np.uint8)
-        return img.tobytes()
-
-    # ---------------------------------------------------------------
-    def get_stage(self, args):
-        """Return current stage position as a NumPy byte array."""
-        if self.factory.microscope is None:
-            return b"Microscope not connected"
-        try:
-            # positions = self.factory.microscope.specimen.stage.position
-            positions = [0.0, 0.0, 0.0, 0.0, 0.0]  # placeholder
-            return np.array(positions, dtype=np.float32).tobytes()
-        except Exception as e:
-            return f"[AS] Failed to get stage position: {e}".encode()
-
-    # ---------------------------------------------------------------
-    def get_status(self, args):
-        """Return whether the AutoScript microscope is connected."""
-        if self.factory.microscope is None:
-            return b"AS server offline"
+    def get_scanned_image(self, scanning_detector, size, dwell_time):
+        """Return a scanned image using the indicated detector"""
+        size = int(size)
+        dwell_time = float(dwell_time)
+        if dwell_time * size * size > 600: # frame time > 10 minutes
+            msg = f"Acquisition too long: {dwell_time*size*size} seconds"
+            return msg.encode()
         else:
-            return b"AS server online"
+            self.factory.status = "Busy"
+            # image = self.microscope.acquisition.acquire_stem_image(
+            #     scanning_detector = 'HAADF', 
+            #     size = args[0], 
+            #     dwell_time = dwell_time)
+            time.sleep(2)
+            image = (np.random.rand(size, size) * 255).astype(np.uint8)
+            self.factory.status = "Ready"
+            return image.tobytes()
+
+    # ---------------------------------------------------------------
+    def get_stage(self):
+        """Return current stage position"""
+        positions = self.factory.microscope.specimen.stage.position
+        return np.array(positions, dtype=np.float32).tobytes()
+
+    # ---------------------------------------------------------------
+    def get_status(self, args=None):
+        """Return the server status"""
+        msg = f"Microscope is {self.factory.status}"
+        return msg.encode()
 
 
 # ================================================================
