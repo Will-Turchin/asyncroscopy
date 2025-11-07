@@ -1,0 +1,35 @@
+[project]
+name = "asyncroscopy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">3.11"
+dependencies = [
+    "autoscript-core",
+    "autoscript-tem-microscope-client",
+    "autoscript-tem-microscope-client-tests",
+    "autoscript-tem-toolkit",
+    "colorama>=0.4.6",
+    "ipykernel>=7.1.0",
+    "lxml>=6.0.2",
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "opencv-python>=4.11.0.86",
+    "pynsid>=0.0.7.2",
+    "scifireaders>=0.12.0",
+    "thermoscientific-logging",
+    "twisted>=25.5.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+include = ["asyncroscopy*"]
+
+[tool.uv.sources]
+autoscript-core = { path = "../../pyAutoMic/TEM/stemOrchestrator/AS_1.14_wheels/autoscript_core-5.32.0-py3-none-any.whl" }
+autoscript-tem-microscope-client-tests = { path = "../../pyAutoMic/TEM/stemOrchestrator/AS_1.14_wheels/autoscript_tem_microscope_client_tests-1.14.0-py3-none-any.whl" }
+autoscript-tem-microscope-client = { path = "../../pyAutoMic/TEM/stemOrchestrator/AS_1.14_wheels/autoscript_tem_microscope_client-1.14.0-py3-none-any.whl" }
+autoscript-tem-toolkit = { path = "../../pyAutoMic/TEM/stemOrchestrator/AS_1.14_wheels/autoscript_tem_toolkit-1.14.0-py3-none-any.whl" }
+thermoscientific-logging = { path = "../../pyAutoMic/TEM/stemOrchestrator/AS_1.14_wheels/thermoscientific_logging-5.32.0-py3-none-any.whl" }

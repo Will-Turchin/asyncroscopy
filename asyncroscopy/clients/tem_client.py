@@ -1,6 +1,7 @@
 # tem_client.py
 import socket, struct, numpy as np
 from concurrent.futures import ThreadPoolExecutor
+import json, struct
 
 # still needs a lot of work
 class TEMClient:
@@ -94,6 +95,22 @@ class TEMClient:
         data = self.send_command(cmd)
         positions = np.frombuffer(data, dtype=np.float32)
         return positions
+
+    # Below should mirror Preacquired_ASProtocol methods in Preacquired_AS_server.py
+    # ================================================================
+    def connect_Preacquired_AS(self, path: str) -> bytes:
+        command = f"Preacquired_AS_connect_Preacquired_AS {path}"
+        response = self.send_command(command, timeout=5)
+        return response.decode()
+
+    def get_scanned_image_Preacquired_AS(self, channel_key="Channel_000"):
+        cmd = f"Preacquired_AS_get_scanned_image {channel_key}"
+        data = self.send_command(cmd)
+        hlen = struct.unpack("!I", data[:4])[0]
+        header = json.loads(data[4:4+hlen].decode())
+        arr = np.frombuffer(data[4+hlen:], dtype=np.dtype(header["dtype"]))
+        return arr.reshape(header["shape"])
+
 
     # Unique methods, including concurrent acquisitions
     # ================================================================
