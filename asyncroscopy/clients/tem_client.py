@@ -105,3 +105,5 @@ class TEMClient:
         img = future_img.result()
         spec = future_spec.result()
         return img, spec
+
+
