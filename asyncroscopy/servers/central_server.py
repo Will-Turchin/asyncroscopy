@@ -9,10 +9,14 @@ import struct
 from asyncroscopy.servers.protocols.central_protocol import CentralProtocol
 
 # Define backend server addresses
-routing_table = {"AS": ("localhost", 9001),
+# routing_table = {"AS": ("localhost", 9001),
+#                 "Gatan": ("localhost", 9002),
+#                 "Ceos": ("localhost", 9003),
+#                 "Preacquired_AS": ("localhost", 9004)}
+
+routing_table = {"AS": ("127.0.0.1", 9095),
                 "Gatan": ("localhost", 9002),
-                "CEOS": ("localhost", 9003),
-                "Preacquired_AS": ("localhost", 9004)}
+                "Ceos": ("127.0.0.1", 7072)}
 
 class CentralFactory(Factory):
     def buildProtocol(self, addr):

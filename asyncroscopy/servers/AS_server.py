@@ -46,9 +46,8 @@ class ASProtocol(ExecutionProtocol):
         """Connect to the microscope via AutoScript"""
         print(f"[AS] Connecting to microscope at {host}:{port}...")
         try:
-            self.factory.microscope = 'Debugging'
-            # self.factory.microscope = auto_script.TemMicroscopeClient()
-            # self.factory.microscope.connect(host=str(host), port=int(port))
+            self.factory.microscope = auto_script.TemMicroscopeClient()
+            self.factory.microscope.connect(host=str(host), port=int(port))
             self.factory.status = "Ready"
             msg = "[AS] Connected to microscope."
         except Exception as e:
@@ -66,12 +65,10 @@ class ASProtocol(ExecutionProtocol):
             return None
         else:
             self.factory.status = "Busy"
-            # image = self.microscope.acquisition.acquire_stem_image(
-            #     scanning_detector = 'HAADF', 
-            #     size = args[0], 
-            #     dwell_time = dwell_time)
-            time.sleep(2)
-            image = (np.random.rand(size, size) * 255).astype(np.uint8)
+            image = self.microscope.acquisition.acquire_stem_image(
+                scanning_detector = 'HAADF', 
+                size = size, 
+                dwell_time = dwell_time)
             self.factory.status = "Ready"
             return image.tobytes()
 

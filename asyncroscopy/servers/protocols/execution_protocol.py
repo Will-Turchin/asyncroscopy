@@ -1,6 +1,10 @@
 from twisted.protocols.basic import Int32StringReceiver
 import traceback
-
+import logging
+import json
+logging.basicConfig()
+log = logging.getLogger('CEOS_acquisition')
+log.setLevel(logging.INFO)
 
 class ExecutionProtocol(Int32StringReceiver):
     """
@@ -11,9 +15,28 @@ class ExecutionProtocol(Int32StringReceiver):
     def __init__(self):
         super().__init__()
         self.commands = {}
+        self._pendingCommands = {}
 
     def connectionMade(self):
+        # log.info('[Exec] Connection from {self.transport.getPeer()}')
         print(f"[Exec] Connection from {self.transport.getPeer()}")
+
+    def connectionLost(self, reason):
+        """
+        Called by twisted after the connection to the server has been
+        interrupted.
+        """
+        log.info('Client disconnected: %s', reason.getErrorMessage())
+
+        for d in self._pendingCommands.values():
+            d.errback(reason)
+        self._pendingCommands.clear()
+        
+    def disconnect(self):
+        """
+        Disconnect from server.
+        """
+        self.transport.loseConnection()
 
     def register_command(self, name, func):
         """Register a callable command."""

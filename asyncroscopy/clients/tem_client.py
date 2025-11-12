@@ -64,7 +64,37 @@ class TEMClient:
             buf += chunk
         return buf
 
+    def send_command_beta(self, destination: str, command: str, args: dict, timeout: float | None = None) -> bytes:
+    
+        cmd = f"{destination}_{command} " + " ".join(f"{k}={v}" for k, v in args.items())
+        print("[client] sending:", cmd)
+        try:
+            # Encode the command
+            payload = cmd.encode()
+            header = struct.pack("!I", len(payload))
 
+            with socket.create_connection((self.host, self.port), timeout=timeout) as sock:
+                # Send length-prefixed message
+                sock.sendall(header + payload)
+                print("[client] sent:", cmd)
+
+                # Read the 4-byte response header
+                resp_hdr = self._recv_exact(sock, 4)
+                resp_len = struct.unpack("!I", resp_hdr)[0]
+
+                # Read exactly that many bytes
+                data = self._recv_exact(sock, resp_len)
+
+            return data
+
+        except (ConnectionRefusedError, socket.timeout):
+            print(f"Could not connect to {self.host}:{self.port} after {timeout} seconds")
+            return None
+
+        except Exception as e:
+            print(f"Error communicating with server: {e}")
+            return None
+        
     # Below should mirror ASProtocol methods in AS_server.py
     # ================================================================
     def connect_AS(self, host: str, port: int) -> bytes:
@@ -96,6 +126,21 @@ class TEMClient:
         positions = np.frombuffer(data, dtype=np.float32)
         return positions
 
+    def run_tableau(self, tab_type="Fast", angle=18):
+        cmd = f"Ceos_run_tableau {tab_type} {angle}"
+        data = self.send_command(cmd)
+        return data.decode()
+
+    def correct_aberration(self, name: str, value=None, target=None, select=None):
+        cmd = f"Ceos_correct_aberration {name} {value} {target} {select}"
+        data = self.send_command(cmd)
+        return data.decode()
+
+    def measure_c1a1(self):
+        cmd = "Ceos_measure_c1a1"
+        data = self.send_command(cmd)
+        return data.decode()
+
     # Below should mirror Preacquired_ASProtocol methods in Preacquired_AS_server.py
     # ================================================================
     def connect_Preacquired_AS(self, path: str) -> bytes:
@@ -122,3 +167,5 @@ class TEMClient:
         img = future_img.result()
         spec = future_spec.result()
         return img, spec
+
+
