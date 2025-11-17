@@ -3,11 +3,11 @@
 """
 the real thing.
 not async yet (socket)
+this one is really just a translator for the real CEOS server.
 """
 
 import logging
 import json
-from typing import Tuple, List, Optional, Union, Sequence
 import traceback
 import socket
 from twisted.internet import reactor,defer, protocol
@@ -75,7 +75,7 @@ class CeosProtocol(ExecutionProtocol):
                 buffer += chunk
 
         print("[Exec] Received netstring from CEOS:", buffer)
-        self.sendString(buffer)
+        self.sendString(self.package_message(buffer))
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 
 """
 digital twin
+
 """
 
 import logging
@@ -35,32 +36,11 @@ class CeosFactory(protocol.Factory):
 class CeosProtocol(ExecutionProtocol):
     def __init__(self):
         super().__init__()
-        allowed = []
-        for name, value in CeosProtocol.__dict__.items():
-            if callable(value) and not name.startswith("_"):
-                allowed.append(name)
-        self.allowed_commands = set(allowed)
-
-    # Override stringReceived for special case of Ceos commands
-    def stringReceived(self, data: bytes):
-        msg = data.decode().strip()
-        print(f"[Exec] Received: {msg}")
-        parts = msg.split()
-        cmd, *args_parts = parts
-        args_dict = dict(arg.split('=', 1) for arg in args_parts if '=' in arg)
-
-        if cmd not in self.allowed_commands:
-            self.sendString(f"ERR Unknown command: {cmd}".encode())
-            return
-
-        method = getattr(self, cmd, None)
-        result = method(args_dict)
-        self.sendString(result)
-
 
     def getInfo(self, args_dict=None):
         """Get microscope info."""
-        return b"CEOS Digital Twin Server"
+        msg = f"CEOS Digital Twin Server"
+        self.sendString(self.package_message(msg))
     
     def uploadAberrations(self, args_dict):
         """Upload aberration data."""
@@ -71,7 +51,8 @@ class CeosProtocol(ExecutionProtocol):
 
         self.factory.aberrations.update(args_dict)
         print("args_dict:", args_dict)
-        return b'Aberrations Loaded'
+        msg = 'Aberrations Loaded'
+        self.sendString(self.package_message(msg))
     
     def runTableau(self, args_dict):
         """Run a tableau acquisition."""
@@ -81,6 +62,11 @@ class CeosProtocol(ExecutionProtocol):
     def correctAberration(self, args_dict):
         """Correct an aberration."""
         # args = {"name": name, "value": [...], "target": [...], "select": ...}
+    
+    def measure_c1a1(self):
+        """Measure C1 and A1 aberrations."""
+        # no args
+        pass
 
 
 if __name__ == "__main__":
